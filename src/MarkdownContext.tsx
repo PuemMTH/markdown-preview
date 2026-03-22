@@ -50,8 +50,12 @@ export function MarkdownProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const path = await invoke<string | null>("get_file_path");
-      if (path) await loadFile(path);
+      try {
+        const path = await invoke<string | null>("get_file_path");
+        if (path) await loadFile(path);
+      } catch (e) {
+        console.error("Failed to load file from CLI:", e);
+      }
       setLoading(false);
     })();
   }, [loadFile]);
