@@ -50,6 +50,21 @@
           harfbuzz
           gdk-pixbuf
           atk
+          # Mesa/EGL for WebKitGTK rendering
+          mesa
+          libGL
+          libGLU
+          egl-wayland
+          # GTK runtime deps
+          fribidi
+          fontconfig
+          freetype
+          gsettings-desktop-schemas
+          hicolor-icon-theme
+          adwaita-icon-theme
+          shared-mime-info
+          # AppImage bundling
+          fuse
         ];
 
         # macOS-specific dependencies
@@ -81,6 +96,13 @@
           pango
           harfbuzz
           gdk-pixbuf
+          mesa
+          libGL
+          libGLU
+          egl-wayland
+          fribidi
+          fontconfig
+          freetype
         ];
 
       in
@@ -89,13 +111,21 @@
           buildInputs = commonBuildInputs ++ platformBuildInputs;
 
           shellHook = ''
-            echo "🔧 Markdown Preview dev environment loaded"
+            echo "Markdown Preview dev environment loaded"
             echo "   Node: $(node --version)"
             echo "   Rust: $(rustc --version)"
             echo "   pnpm: $(pnpm --version)"
           '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             export LD_LIBRARY_PATH="${linuxLibs}:$LD_LIBRARY_PATH"
             export GIO_MODULE_PATH="${pkgs.glib-networking}/lib/gio/modules"
+            # Use system GPU drivers if available, fall back to Mesa software rendering
+            if [ -d /run/opengl-driver/lib ]; then
+              export LIBGL_DRIVERS_PATH=/run/opengl-driver/lib/dri
+            else
+              export LIBGL_ALWAYS_SOFTWARE=1
+            fi
+            export WEBKIT_DISABLE_DMABUF_RENDERER=1
+            export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:${pkgs.hicolor-icon-theme}/share:${pkgs.adwaita-icon-theme}/share:${pkgs.shared-mime-info}/share:$XDG_DATA_DIRS"
           '';
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
@@ -142,7 +172,8 @@
           '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             wrapProgram $out/bin/markdown-preview \
               --prefix LD_LIBRARY_PATH : "${linuxLibs}" \
-              --set GIO_MODULE_PATH "${pkgs.glib-networking}/lib/gio/modules"
+              --set GIO_MODULE_PATH "${pkgs.glib-networking}/lib/gio/modules" \
+              --set WEBKIT_DISABLE_DMABUF_RENDERER 1
           '';
         };
       }
