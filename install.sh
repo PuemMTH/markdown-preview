@@ -109,19 +109,17 @@ main() {
             trap 'rm -rf "$TMPDIR"' EXIT
 
             if [ "$ARCH" = "aarch64" ]; then
-                ASSET="${APP}_${VERSION#v}_aarch64.dmg"
+                ASSET="${APP}_aarch64.app.tar.gz"
             else
-                ASSET="${APP}_${VERSION#v}_x64.dmg"
+                ASSET="${APP}_x64.app.tar.gz"
             fi
             ASSET_URL="https://github.com/${REPO}/releases/download/${VERSION}/${ASSET}"
 
             info "Downloading ${ASSET}..."
             download "$ASSET_URL" "${TMPDIR}/${ASSET}"
 
-            info "Mounting DMG..."
-            hdiutil attach "${TMPDIR}/${ASSET}" -quiet -mountpoint "${TMPDIR}/mount"
-            cp -R "${TMPDIR}/mount/${APP}.app" /Applications/
-            hdiutil detach "${TMPDIR}/mount" -quiet
+            info "Extracting..."
+            tar -xzf "${TMPDIR}/${ASSET}" -C /Applications/
 
             info "Installed to /Applications/${APP}.app"
             ;;
